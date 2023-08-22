@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class ScreenshotAndMove : MonoBehaviour
@@ -11,24 +12,27 @@ public class ScreenshotAndMove : MonoBehaviour
     private void Start()
     {
         // Create the folder if it doesn't exist
-        System.IO.Directory.CreateDirectory(Application.persistentDataPath + "/" + screenshotFolderPath);
+        System.IO.Directory.CreateDirectory("Assets/" + screenshotFolderPath);
+        StartCoroutine(SsAndMove());
     }
 
-    private void Update()
+    IEnumerator SsAndMove()
     {
-        if (screenshotCount < numberOfScreenshots)
+        while(screenshotCount < numberOfScreenshots)
         {
+            yield return new WaitForSeconds(.3f);
             TakeScreenshot();
-
+            yield return new WaitForSeconds(.3f);
             MoveCameraRandomly();
             screenshotCount++;
         }
+
     }
 
     private void TakeScreenshot()
     {
-        string screenshotFilename = $"{screenshotFolderPath}/screenshot_{screenshotCount}.png";
-        ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(Application.persistentDataPath, screenshotFilename));
+        string screenshotFilename = $"Assets/{screenshotFolderPath}/screenshot_{screenshotCount}.png";
+        ScreenCapture.CaptureScreenshot(screenshotFilename);
         Debug.Log($"Screenshot {screenshotCount} taken and saved as {screenshotFilename}");
     }
 
