@@ -1,125 +1,90 @@
 using UnityEngine;
 using System.IO;
-using System;
-using Google.Protobuf.WellKnownTypes;
-using UnityEngine.UIElements;
-using Unity.VisualScripting;
+using System.Collections;
 
 public class TextureGenerator : MonoBehaviour
 {
     int width = 300;
     int height = 300;
+    public Cubemap previewTexture;
+    int modifier = 1;
+    private int currentImage = 0;
+    private int dataSetSize = 10;
     private void Start()
     {
-        
-        string baseFileName = "temporary_texture";
-        string fileName = baseFileName;
-        int offsetX = 120;
-        int offsetY = 120;
+        StartCoroutine(ChangeTextAndSS());
+    }
 
-        // Check if a file with the same name already exists, and add a modifier if needed
-        int modifier = 1;
-        while (File.Exists($"Assets/HDRIS/{fileName}.png"))
+
+    IEnumerator ChangeTextAndSS()
+    {
+        yield return new WaitForSeconds(.3f);
+        while (currentImage < dataSetSize)
         {
-            Debug.Log("File exist");
-            fileName = $"{Path.GetFileNameWithoutExtension(baseFileName)}_{modifier}";
-            modifier++;
-        }
+            string baseFileName = "temporary_texture";
+            string fileName = baseFileName;
 
-        // Create a new texture with the specified dimensions
-        Texture2D texture = new Texture2D(width, height);
-
-        // Generate a black and white pattern
-        Color[] pixels = new Color[width * height];
-        System.Random random = new System.Random();
-        float grayscaleValue = random.Next(256) / 256f;
-
-        // Create a grayscale color using the random value
-        Color last_color = new Color(grayscaleValue, grayscaleValue, grayscaleValue);
-        Color[,] graident = GenerateSquareGradient(100, 100,2);
-        Color[,] gradeint2 = GenerateSquareGradient(100, 100, 3);
-        //Color[,] gradeint2 = GenerateRoundGradient(100, 100);
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
+            // Check if a file with the same name already exists, and add a modifier if needed
+            while (File.Exists($"Assets/HDRIS/{fileName}.png"))
             {
-                /*
-                if (random.Next(100) < 10)
+                Debug.Log("File exist");
+                fileName = $"{Path.GetFileNameWithoutExtension(baseFileName)}_{modifier}";
+                ++modifier;
+            }
+
+            // Create a new texture with the specified dimensions
+            Texture2D texture = new Texture2D(width, height);
+
+            // Generate a black and white pattern
+            Color[] pixels = new Color[width * height];
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
                 {
-                    grayscaleValue = random.Next(256) / 256f;
-                    // Create a grayscale color using the random value
-                    Color pixelColor = new Color(grayscaleValue, grayscaleValue, grayscaleValue);
-                    last_color = pixelColor;
-                    pixels[y * width + x] = pixelColor;
+                    /*
+                    if (random.Next(100) < 10)
+                    {
+                        grayscaleValue = random.Next(256) / 256f;
+                        // Create a grayscale color using the random value
+                        Color pixelColor = new Color(grayscaleValue, grayscaleValue, grayscaleValue);
+                        last_color = pixelColor;
+                        pixels[y * width + x] = pixelColor;
+                    }
+                    else
+                    {
+                        Color pixelColor;
+                        pixelColor = last_color;
+                        pixels[y * width + x] = pixelColor;
+                    }*/
+                    pixels[y * width + x] = Color.black;
+                }
+            }
+            for (int i = 0; i < UnityEngine.Random.Range(1, 20); i++)
+            {
+                if (UnityEngine.Random.Range(0, 11) < 5)
+                {
+                    GenerateRandomGradientOnColor(pixels);
                 }
                 else
                 {
-                    Color pixelColor;
-                    pixelColor = last_color;
-                    pixels[y * width + x] = pixelColor;
-                }*/
-                pixels[y * width + x] = Color.black;
-            }
-        }
-        for(int i = 0; i < UnityEngine.Random.Range(1, 20); i++)
-        {
-            if(UnityEngine.Random.Range(0,11) < 5)
-            {
-                GenerateRandomGradientOnColor(pixels);
-            } else
-            {
-                GenerateRandomSquareGradients(pixels);
-            }
-        }
-
-        /*
-        Color empty = new Color();
-        for (int y = 0; y < graident.GetLength(1); y++)
-        {
-            for (int x = 0; x < graident.GetLength(0); x++)
-            {
-                if (graident[x, y] != null && graident[x, y] != empty)
-                {
-                    if((y + offsetY) < height && (x + offsetX) < width)
-                    {
-                        pixels[(y + offsetY) * width + x + offsetX] = graident[x, y];
-                    }
+                    GenerateRandomSquareGradients(pixels);
                 }
             }
+
+            previewTexture.SetPixels(pixels, CubemapFace.PositiveX);
+            previewTexture.Apply();
+            texture.SetPixels(pixels);
+            texture.Apply();
+            byte[] pngData = texture.EncodeToPNG();
+            File.WriteAllBytes($"Assets/PreviewTexture.png", pngData);
+            File.WriteAllBytes($"Assets/HDRIS/{fileName}.png", pngData);
+            UnityEditor.AssetDatabase.Refresh();
+            yield return new WaitForSeconds(.3f);
+            TakeScreenshot();
+            yield return new WaitForSeconds(.3f);
+            currentImage++;
         }
-        for (int y = 0; y < gradeint2.GetLength(1); y++)
-        {
-            for (int x = 0; x < gradeint2.GetLength(0); x++)
-            {
-                if (gradeint2[x, y] != null && gradeint2[x, y] != empty)
-                {
-                    if ((y + offsetY/4) < height && (x + offsetX/4) < width)
-                    {
-                        pixels[(y + offsetY/4) * width + x + offsetX/4] = gradeint2[x, y];
-                    }
-                }
-            }
-        }
-        */
-
-        // Set the pixel data for the texture
-        texture.SetPixels(pixels);
-
-        // Apply changes to the texture
-        texture.Apply();
-
-        // Encode the texture to a PNG file
-        byte[] pngData = texture.EncodeToPNG();
-
-        // Save the PNG data to the file with the modified name
-        File.WriteAllBytes($"Assets/HDRIS/{fileName}.png", pngData);
-
-        // Don't forget to refresh the Unity Asset Database to see the new texture in the editor
-        UnityEditor.AssetDatabase.Refresh();
-
-        // Optional: Assign the generated texture to a material or object
-        // Renderer renderer = GetComponent<Renderer>();
-        // renderer.material.mainTexture = texture;
+       
     }
 
     //0/1 y 2/3 x
@@ -158,10 +123,7 @@ public class TextureGenerator : MonoBehaviour
                             break;
                         }
                 }
-                
-
                 gradient[w, y ] = new Color(grad, grad, grad); 
-                //Debug.Log($"Width: {w} and {w + startX}, height: {}")
             }
         }
         return gradient;
@@ -196,11 +158,9 @@ public class TextureGenerator : MonoBehaviour
         {
             for (int y = 0; y < height-1; y++)
             {
-                // Calculate the grayscale value based on the distance from the positionX and positionY
                 float distance = Vector2.Distance(new Vector2(x, y), new Vector2(width/2, height/2));
                 float grayscaleValue = Mathf.Clamp01(1 - (distance / width));
 
-                // Set the pixel color to grayscale
                 Color pixelColor = new Color(grayscaleValue, grayscaleValue, grayscaleValue, grayscaleValue);
 
                 gradient[x, y ] = pixelColor;
@@ -229,5 +189,14 @@ public class TextureGenerator : MonoBehaviour
                 }
             }
         }
-    }    
+    }
+
+    private void TakeScreenshot()
+    {
+        string screenshotFilename = $"Assets/Screenshots/screenshot_{modifier-1}.png";
+        ScreenCapture.CaptureScreenshot(screenshotFilename);
+        //Debug.Log($"Screenshot {modifier-1} taken and saved as {screenshotFilename}");
+    }
+
+
 }
